@@ -5,7 +5,7 @@ import db from "./Kambaz/Database/index.js"
 import UserRoutes from "./Kambaz/Users/routes.js";
 import CourseRoutes from "./Kambaz/Courses/routes.js";
 import AssignmentRoutes from "./Kambaz/Assignments/routes.js";
-import Lab5 from "../app/Labs/Lab5/index.js"
+import Lab5 from "./Lab5/index.js"
 import "dotenv/config";
 import session from "express-session";
 const app = express();
