@@ -1,24 +1,47 @@
-import cors from "cors";
-import express from 'express'
-import Hello from "./Hello.js";
-import db from "./Kambaz/Database/index.js"
+import express from 'express';
+import mongoose from "mongoose";
+import db from "./Kambaz/Database/index.js";
 import UserRoutes from "./Kambaz/Users/routes.js";
 import CourseRoutes from "./Kambaz/Courses/routes.js";
-import AssignmentRoutes from "./Kambaz/Assignments/routes.js";
-import Lab5 from "./Lab5/index.js"
+import ModulesRoutes from "./Kambaz/Modules/routes.js";
+import AssignmentsRoutes from "./Kambaz/Assignments/routes.js";
+import EnrollmentsRoutes from "./Kambaz/Enrollments/routes.js";
+import Hello from "./Hello.js";
+import Lab5 from "./Lab5/index.js";
+import cors from "cors";
 import "dotenv/config";
 import session from "express-session";
-import mongoose from "mongoose";
 
-const CONNECTION_STRING = process.env.DATABASE_CONNECTION_STRING || "mongodb://127.0.0.1:27017/kambaz"
-mongoose.connect(CONNECTION_STRING);
+const CONNECTION_STRING =
+  process.env.DATABASE_CONNECTION_STRING ||
+  "mongodb://127.0.0.1:27017/kambaz";
+
+mongoose
+  .connect(CONNECTION_STRING)
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("MongoDB connection error:", err));
+
 const app = express();
+
+app.use(cors({
+  origin: process.env.CLIENT_URL || "http://localhost:3000",
+  credentials: true,
+}));
+
+app.options("*", cors());
+
 const sessionOptions = {
   secret: process.env.SESSION_SECRET || "kambaz",
   resave: false,
   saveUninitialized: false,
 };
-if (process.env.SERVER_ENV !== "development") {
+
+if (process.env.NODE_ENV !== "production") {
+  sessionOptions.cookie = {
+    sameSite: "lax",
+    secure: false,
+  };
+} else {
   sessionOptions.proxy = true;
   sessionOptions.cookie = {
     sameSite: "none",
@@ -29,15 +52,15 @@ if (process.env.SERVER_ENV !== "development") {
 
 app.use(session(sessionOptions));
 app.use(express.json());
-app.use(
- cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
-    credentials: false
-  })
-);
+
 Lab5(app);
-Hello(app)
+Hello(app);
 UserRoutes(app, db);
 CourseRoutes(app, db);
-AssignmentRoutes(app, db);
-app.listen(process.env.PORT || 4000)
+ModulesRoutes(app, db);
+AssignmentsRoutes(app, db);
+EnrollmentsRoutes(app, db);
+
+app.listen(process.env.PORT || 4000, () => {
+  console.log("Server running on port", process.env.PORT || 4000);
+});
