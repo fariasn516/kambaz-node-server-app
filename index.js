@@ -27,7 +27,7 @@ app.use(cors({
   credentials: true,
 }));
 
-app.options("*", cors());
+app.options("/**", cors());
 
 const sessionOptions = {
   secret: process.env.SESSION_SECRET || "kambaz",
