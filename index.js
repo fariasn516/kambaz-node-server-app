@@ -25,9 +25,17 @@ const app = express();
 app.use(cors({
   origin: process.env.CLIENT_URL || "http://localhost:3000",
   credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 200
 }));
 
-app.options("(.*)", cors());
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 const sessionOptions = {
   secret: process.env.SESSION_SECRET || "kambaz",
@@ -51,6 +59,7 @@ if (process.env.NODE_ENV !== "production") {
 
 app.use(session(sessionOptions));
 app.use(express.json());
+
 
 Lab5(app);
 Hello(app);
