@@ -8,6 +8,10 @@ import AssignmentRoutes from "./Kambaz/Assignments/routes.js";
 import Lab5 from "./Lab5/index.js"
 import "dotenv/config";
 import session from "express-session";
+import mongoose from "mongoose";
+
+const CONNECTION_STRING = process.env.DATABASE_CONNECTION_STRING || "mongodb://127.0.0.1:27017/kambaz"
+mongoose.connect(CONNECTION_STRING);
 const app = express();
 const sessionOptions = {
   secret: process.env.SESSION_SECRET || "kambaz",
