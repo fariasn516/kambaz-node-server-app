@@ -1,73 +1,50 @@
-import express from 'express';
-import mongoose from "mongoose";
-import db from "./Kambaz/Database/index.js";
+import cors from "cors";
+import express from 'express'
+import Hello from "./Hello.js";
+import db from "./Kambaz/Database/index.js"
 import UserRoutes from "./Kambaz/Users/routes.js";
 import CourseRoutes from "./Kambaz/Courses/routes.js";
-import ModulesRoutes from "./Kambaz/Modules/routes.js";
-import AssignmentsRoutes from "./Kambaz/Assignments/routes.js";
-import Hello from "./Hello.js";
-import Lab5 from "./Lab5/index.js";
-import cors from "cors";
+import AssignmentRoutes from "./Kambaz/Assignments/routes.js";
+import EnrollmentsRoutes from "./Kambaz/Enrollments/routes.js";
+import Lab5 from "./Lab5/index.js"
 import "dotenv/config";
 import session from "express-session";
+import mongoose from "mongoose";
 
-const CONNECTION_STRING =
-  process.env.DATABASE_CONNECTION_STRING ||
-  "mongodb://127.0.0.1:27017/kambaz";
-
-mongoose
-  .connect(CONNECTION_STRING)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB connection error:", err));
-
+const CONNECTION_STRING = process.env.DATABASE_CONNECTION_STRING || "mongodb://127.0.0.1:27017/kambaz"
+mongoose.connect(CONNECTION_STRING);
 const app = express();
-
-app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:3000",
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  optionsSuccessStatus: 200
-}));
-
-app.use((req, res, next) => {
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-  next();
-});
-
 const sessionOptions = {
   secret: process.env.SESSION_SECRET || "kambaz",
-  resave: false,
-  saveUninitialized: false,
+  resave: true,
+  saveUninitialized: true,
+  cookie: {
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000,
+  }
 };
 
-if (process.env.NODE_ENV !== "production") {
-  sessionOptions.cookie = {
-    sameSite: "lax",
-    secure: false,
-  };
-} else {
+if (process.env.SERVER_ENV !== "development") {
   sessionOptions.proxy = true;
-  sessionOptions.cookie = {
-    sameSite: "none",
-    secure: true,
-    domain: process.env.SERVER_URL,
-  };
+  sessionOptions.cookie.sameSite = "none";
+  sessionOptions.cookie.secure = true;
+} else {
+  sessionOptions.cookie.sameSite = "lax";
+  sessionOptions.cookie.secure = false;
 }
 
-app.use(session(sessionOptions));
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    credentials: false
+  })
+);
 app.use(express.json());
-
-
+app.use(session(sessionOptions));
 Lab5(app);
-Hello(app);
+Hello(app)
 UserRoutes(app, db);
 CourseRoutes(app, db);
-ModulesRoutes(app, db);
-AssignmentsRoutes(app, db);
-
-app.listen(process.env.PORT || 4000, () => {
-  console.log("Server running on port", process.env.PORT || 4000);
-});
+AssignmentRoutes(app, db);
+EnrollmentsRoutes(app, db);
+app.listen(process.env.PORT || 4000)
