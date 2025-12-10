@@ -1,52 +1,69 @@
 import CoursesDao from "./dao.js";
 import EnrollmentsDao from "../Enrollments/dao.js";
+import userModel from "../Users/model.js";
 
 export default function CourseRoutes(app, db) {
   const dao = CoursesDao(db);
   const enrollmentsDao = EnrollmentsDao(db);
 
   const findAllCourses = async (req, res) => {
-    const courses = await dao.findAllCourses();
-    res.send(courses);
+    try {
+      const courses = await dao.findAllCourses();
+      res.json(courses);
+    } catch (error) {
+      console.error("Error finding all courses:", error);
+      res.status(500).json({ error: error.message });
+    }
   }
 
   const findCoursesForEnrolledUser = async (req, res) => {
-    let { userId } = req.params;
-    let user = null;
-    if (userId === "current") {
-      user = req.session["currentUser"];
-      if (!user && req.query?.userId) {
-        const { users } = db;
-        user = users.find((u) => u._id === req.query.userId);
-        userId = req.query.userId;
-      } else if (user) {
-        userId = user._id;
+    try {
+      let { userId } = req.params;
+      let user = null;
+      if (userId === "current") {
+        user = req.session["currentUser"];
+        if (!user && req.query?.userId) {
+          user = await userModel.findOne({ _id: req.query.userId });
+          userId = req.query.userId;
+        } else if (user) {
+          userId = user._id;
+        } else {
+          res.sendStatus(401);
+          return;
+        }
       } else {
-        res.sendStatus(401);
+        user = await userModel.findOne({ _id: userId });
+      }
+      
+      if (user && (user.role === "ADMIN" || user.role === "FACULTY")) {
+        const courses = await dao.findAllCourses();
+        res.json(courses);
         return;
       }
-    } else {
-      const { users } = db;
-      user = users.find((u) => u._id === userId);
-    }
-    if (user && (user.role === "ADMIN" || user.role === "FACULTY")) {
-      const courses = await dao.findAllCourses();
+      const courses = await enrollmentsDao.findCoursesForUser(userId);
       res.json(courses);
-      return;
+    } catch (error) {
+      console.error("Error finding courses for user:", error);
+      res.status(500).json({ error: error.message });
     }
-   const courses = await enrollmentsDao.findCoursesForUser(userId);
-    res.json(courses);
   };
 
   const createCourse = async (req, res) => {
-    const userId = req.session["currentUser"]?._id || req.body.userId;
-    if (!userId) {
-      res.status(400).json({ message: "userId is required" });
-      return;
+    try {
+      const userId = req.session["currentUser"]?._id || req.body.userId;
+      if (!userId) {
+        res.status(400).json({ message: "userId is required" });
+        return;
+      }
+      const newCourse = await dao.createCourse(req.body);
+      const courseObj = newCourse.toObject ? newCourse.toObject() : newCourse;
+      // Automatically enroll the creator
+      await enrollmentsDao.enrollUserInCourse(userId, courseObj._id);
+      res.json(courseObj);
+    } catch (error) {
+      console.error("Error creating course:", error);
+      res.status(500).json({ error: error.message });
     }
-    const newCourse = await dao.createCourse(req.body);
-    await enrollmentsDao.enrollUserInCourse(userId, newCourse._id);
-    res.json(newCourse);
   };
 
   const deleteCourse = async (req, res) => {

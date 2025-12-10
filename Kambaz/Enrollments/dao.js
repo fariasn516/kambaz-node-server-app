@@ -2,13 +2,21 @@ import model from "./model.js";
 
 export default function EnrollmentsDao(db) {
   async function findCoursesForUser(userId) {
-    const enrollments = await model.find({ user: userId }).populate("course");
-    return enrollments.map((enrollment) => enrollment.course);
+    const enrollments = await model.find({ user: userId });
+    const courseIds = enrollments.map((enrollment) => enrollment.course);
+    // Fetch courses directly since populate might not work with string IDs
+    const courseModel = (await import("../Courses/model.js")).default;
+    const courses = await courseModel.find({ _id: { $in: courseIds } });
+    return courses.map(c => c.toObject ? c.toObject() : c);
   }
 
   async function findUsersForCourse(courseId) {
-    const enrollments = await model.find({ course: courseId }).populate("user");
-    return enrollments.map((enrollment) => enrollment.user);
+    const enrollments = await model.find({ course: courseId });
+    const userIds = enrollments.map((enrollment) => enrollment.user);
+    // Fetch users directly since populate might not work with string IDs
+    const userModel = (await import("../Users/model.js")).default;
+    const users = await userModel.find({ _id: { $in: userIds } });
+    return users.map(u => u.toObject ? u.toObject() : u);
   }
 
   async function findEnrollmentsForUser(userId) {

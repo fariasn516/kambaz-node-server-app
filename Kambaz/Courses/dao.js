@@ -2,8 +2,9 @@ import {v4 as uuidv4} from "uuid";
 import model from "./model.js";
 
 export default function CoursesDao(db) {
-    function findAllCourses() {
-        return model.find({}, {name: 1, description: 1});
+    async function findAllCourses() {
+        const courses = await model.find();
+        return courses.map(c => c.toObject ? c.toObject() : c);
     }
 
     async function findCoursesForEnrolledUser(userId) {
